@@ -14,38 +14,22 @@ namespace DarkSkin {
             try {
                 Console.WriteLine("Fetching unity installations...");
 
-                var unitys = Directory.EnumerateDirectories(Environment.CurrentDirectory, "*", SearchOption.AllDirectories)
-                   .Select(dir => Path.Combine(dir, "Unity.exe"))
-                   .Where(exe => {
-                       var exists = File.Exists(exe);
-                       if (exists)
-                           Console.WriteLine("\nFound installation: {0}", exe);
-                       return exists;
-                   }).Select(exe => {
-                       Console.WriteLine("Getting skin information...");
-                       return new UnitySkin(exe);
-                   }).Where(unity => {
-                       if (unity.AddressOfSkinFlags == -1)
-                           Console.WriteLine("Invalid executable, skin bytes not found");
-                       return unity.AddressOfSkinFlags != -1;
-                   }).Where(unity => {
-                       var shouldChange = (TO_ENABLE && unity.IsWhiteSkin) || (!TO_ENABLE && unity.IsDarkSkin);
-                       if (!shouldChange)
-                           Console.WriteLine("Skin already applied, ignoring");
-                       return shouldChange;
-                   });
+                Directory.EnumerateDirectories(Environment.CurrentDirectory, "*", SearchOption.AllDirectories)
+                  .AsParallel()
+                  .Select(dir => Path.Combine(dir, "Unity.exe"))
+                  .Where(exe => File.Exists(exe))
+                  .Select(exe => new UnitySkin(exe))
+                  .Where(unity => unity.OffsetOfSkinFlags != -1 && unity.SkinIndex != -1)
+                  .Where(unity => {
+                      var shouldChange = (TO_ENABLE && unity.IsWhiteSkin) || (!TO_ENABLE && unity.IsDarkSkin);
+                      if(!shouldChange)
+                          unity.Log("Skin already applied, ignoring");
+                      return shouldChange;
+                  })
+                  .ForAll(unity => unity.SetDarkSkinEnable(TO_ENABLE));
 
-                foreach (var unity in unitys)
-                    try {
-                        Console.Write("Applying {0} skin ", TO_ENABLE ? "dark" : "white");
-                        unity.SetDarkSkinEnable(TO_ENABLE);
-                        Console.WriteLine("- Success!");
-                    }
-                    catch (Exception e) {
-                        Console.WriteLine("- Error: {0}", e.Message);
-                    }
             }
-            catch (Exception e) {
+            catch(Exception e) {
                 Console.WriteLine("\nError");
                 Console.WriteLine(e.Message);
             }
@@ -56,5 +40,6 @@ namespace DarkSkin {
             }
 
         }
+
     }
 }
