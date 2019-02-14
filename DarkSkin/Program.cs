@@ -12,28 +12,31 @@ namespace DarkSkin {
             Console.Title = "Dark Skin for Unity";
 
             try {
+
+                //var n = new UnitySkin(@"D:\Unity\2019.1.0a7-ImprovedUI\Editor\Unity.exe", true);
+                //n.SetDarkSkinEnable(true);
+                //return;
+
                 Console.WriteLine("Fetching unity installations...");
 
                 Directory.EnumerateDirectories(Environment.CurrentDirectory, "*", SearchOption.AllDirectories)
                   .AsParallel()
                   .Select(dir => Path.Combine(dir, "Unity.exe"))
                   .Where(exe => File.Exists(exe))
-                  .Select(exe => new UnitySkin(exe))
+                  .Select(exe => new UnitySkin(exe, false))
                   .Where(unity => unity.OffsetOfSkinFlags != -1 && unity.SkinIndex != -1)
                   .Where(unity => {
                       var shouldChange = (TO_ENABLE && unity.IsWhiteSkin) || (!TO_ENABLE && unity.IsDarkSkin);
-                      if(!shouldChange)
+                      if (!shouldChange)
                           unity.Log("Skin already applied, ignoring");
                       return shouldChange;
                   })
                   .ForAll(unity => unity.SetDarkSkinEnable(TO_ENABLE));
 
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 Console.WriteLine("\nError");
                 Console.WriteLine(e.Message);
-            }
-            finally {
+            } finally {
                 Console.WriteLine("\nFinished");
                 Console.WriteLine("Press any key to continue...");
                 Console.ReadKey(true);

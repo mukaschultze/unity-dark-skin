@@ -10,12 +10,14 @@ namespace DarkSkin {
         public static readonly string[] WHITE_HEX = new[] {
             "84 C0 75 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2
             "84 C0 75 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
-            "84 DB 74 04 33 C0 EB 02 8B 07" // >= 2019.1
+            "84 DB 74 04 33 C0 EB 02 8B 07" ,// >= 2019.1
+            // "74 56 48 8B 7C 24 30 48 83 7C 24 38 00 77 2F 48 85 FF 74 2A 48 8B 74 24 48 48 8B 0B 48 85 C9 74 10 48 83 7B 08 00 76 09 48 8D 53"
         };
         public static readonly string[] DARK_HEX = new[] {
             "84 C0 74 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2 
             "84 C0 74 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
-            "84 DB 75 04 33 C0 EB 02 8B 07" // >= 2019.1
+            "84 DB 75 04 33 C0 EB 02 8B 07", // >= 2019.1
+            // "74 56 48 8B 7C 24 30 48 83 7C 24 38 00 77 2F 48 85 FF 74 2A 48 8B 74 24 48 48 8B 0B 48 85 C9 74 10 48 83 7B 08 00 76 09 48 8D 53"
         };
 
         public static readonly byte[][] whiteBytes = GetBytesFromHex(WHITE_HEX);
@@ -30,10 +32,15 @@ namespace DarkSkin {
         public bool IsDarkSkin { get; private set; }
         public bool IsWhiteSkin { get; private set; }
 
-        public UnitySkin(string unityExe) {
+        public UnitySkin(string unityExe, bool checkMatches) {
             var exeBytes = File.ReadAllBytes(unityExe);
 
             UnityExe = unityExe;
+
+            if(checkMatches) {
+                BestMatches(exeBytes);
+                return;
+            }
 
             if(whiteBytes.Length != darkBytes.Length)
                 throw new Exception("Non matching number of skins hexes");
@@ -63,6 +70,8 @@ namespace DarkSkin {
                 Log("Applying {0} skin...", enable ? "dark" : "white");
                 using(var stream = File.Open(UnityExe, FileMode.Open)) {
                     stream.Position = OffsetOfSkinFlags;
+                    // stream.Position = 0x011E1FB0;
+                    // SkinIndex = 3;
                     stream.Write(enable ? darkBytes[SkinIndex] : whiteBytes[SkinIndex], 0, (enable ? darkBytes[SkinIndex] : whiteBytes[SkinIndex]).Length);
                 }
                 Log("Success!");
@@ -91,6 +100,43 @@ namespace DarkSkin {
                     return false;
 
             return true;
+        }
+
+        private static void BestMatches(byte[] exeBytes) {
+            for(var i = 0; i < whiteBytes.Length; i++) {
+                Console.WriteLine("\nTesting white skin sequence {0}", i);
+                BestMatches(exeBytes, whiteBytes[i]);
+            }
+            for(var i = 0; i < darkBytes.Length; i++) {
+                Console.WriteLine("\nTesting dark skin sequence {0}", i);
+                BestMatches(exeBytes, darkBytes[i]);
+            }
+        }
+
+        private static void BestMatches(byte[] exeBytes, byte[] skinBytes) {
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.WriteLine("Sequence:\t\t{0}", FormatBytes(skinBytes));
+            var c = 0x011E1FB0;
+            var cs = MatchPercent(exeBytes, c, skinBytes);
+            Console.WriteLine("0x{0:X8} ({1:00.0%}):\t{2} - {3:0.00%}", c, (float)c / exeBytes.Length, FormatBytes(exeBytes, c, 1000), cs);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.BackgroundColor = ConsoleColor.Black;
+            Parallel.For(c, c + 5000 /*exeBytes.Length*/, (i) => {
+                var match = MatchPercent(exeBytes, i, skinBytes);
+                if(match > 0.4)
+                    Console.WriteLine("0x{0:X8} ({1:00.0%}):\t{2} - {3:0.00%}", i, (float)i / exeBytes.Length, FormatBytes(exeBytes, i, skinBytes.Length), match);
+            });
+        }
+
+        private static float MatchPercent(byte[] exeBytes, int offset, byte[] skinBytes) {
+            var matches = 0;
+
+            for(int i = 0, j = offset; i < skinBytes.Length && j < exeBytes.Length; i++, j++)
+                if(exeBytes[j] == skinBytes[i])
+                    matches++;
+
+            return (float)matches / skinBytes.Length;
         }
 
         private static int GetOffsetOfSkinFlag(byte[] exeBytes, byte[] expectedWhiteSequence, byte[] expectedDarkSequence) {
@@ -128,6 +174,14 @@ namespace DarkSkin {
             File.Delete(UnityExe);
             var bytes = File.ReadAllBytes(UnityBackupExe);
             File.WriteAllBytes(UnityExe, bytes);
+        }
+
+        public static string FormatBytes(byte[] bytes) {
+            return string.Join(" ", bytes.Select(b => b.ToString("X2")));
+        }
+
+        public static string FormatBytes(byte[] bytes, int skip, int take) {
+            return string.Join(" ", bytes.Skip(skip).Take(take).Select(b => b.ToString("X2")));
         }
 
         public void Log(string format, params object[] args) {
