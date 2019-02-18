@@ -1,0 +1,16 @@
+language: csharp
+solution: dark-skin.sln
+
+mono:
+  - latest
+
+before_deploy:
+  - mv Build/Release/dark-skin.exe Build/Release/dark-skin-$TRAVIS_TAG.exe
+
+deploy:
+  provider: releases
+  api_key: "$DEPLOY_TOKEN"
+  file: "Build/Release/dark-skin-$TRAVIS_TAG.exe"
+  skip_cleanup: true
+  on:
+    tags: true
