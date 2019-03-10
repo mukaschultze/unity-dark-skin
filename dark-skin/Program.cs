@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -19,19 +20,18 @@ namespace DarkSkin {
 
                 Console.WriteLine("Fetching unity installations...");
 
-                Directory.EnumerateDirectories(Environment.CurrentDirectory, "*", SearchOption.AllDirectories)
-                  .AsParallel()
-                  .Select(dir => Path.Combine(dir, "Unity.exe"))
-                  .Where(exe => File.Exists(exe))
-                  .Select(exe => new UnitySkin(exe, false))
-                  .Where(unity => unity.OffsetOfSkinFlags != -1 && unity.SkinIndex != -1)
-                  .Where(unity => {
-                      var shouldChange = (TO_ENABLE && unity.IsWhiteSkin) || (!TO_ENABLE && unity.IsDarkSkin);
-                      if (!shouldChange)
-                          unity.Log("Skin already applied, ignoring");
-                      return shouldChange;
-                  })
-                  .ForAll(unity => unity.SetDarkSkinEnable(TO_ENABLE));
+                GetUnityInstallations(Environment.CurrentDirectory)
+                    .AsParallel()
+                    .Where(exe => File.Exists(exe))
+                    .Select(exe => new UnitySkin(exe, false))
+                    .Where(unity => unity.OffsetOfSkinFlags != -1 && unity.SkinIndex != -1)
+                    .Where(unity => {
+                        var shouldChange = (TO_ENABLE && unity.IsWhiteSkin) || (!TO_ENABLE && unity.IsDarkSkin);
+                        if (!shouldChange)
+                            unity.Log("Skin already applied, ignoring");
+                        return shouldChange;
+                    })
+                    .ForAll(unity => unity.SetDarkSkinEnable(TO_ENABLE));
 
             } catch (Exception e) {
                 Console.WriteLine("\nError");
@@ -42,6 +42,22 @@ namespace DarkSkin {
                 Console.ReadKey(true);
             }
 
+        }
+
+        private static List<string> GetUnityInstallations(string root) {
+
+            var folders = new List<string>();
+            var unity = Path.Combine(root, "Unity.exe");
+
+            if (File.Exists(unity)) {
+                folders.Add(unity);
+                return folders;
+            }
+
+            foreach (var directory in Directory.EnumerateDirectories(root))
+                folders.AddRange(GetUnityInstallations(directory));
+
+            return folders;
         }
 
     }
