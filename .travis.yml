@@ -1,6 +1,11 @@
 language: csharp
 solution: dark-skin.sln
 
+notifications:
+  email:
+    on_success: never
+    on_failure: change
+
 mono:
   - latest
 
