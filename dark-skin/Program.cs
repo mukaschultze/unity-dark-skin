@@ -69,7 +69,7 @@ namespace DarkSkin {
 
             } catch (Exception e) {
                 Console.Error.WriteLine("\nError");
-                Console.Error.WriteLine(e.Message);
+                Console.Error.WriteLine(e);
             }
         }
 

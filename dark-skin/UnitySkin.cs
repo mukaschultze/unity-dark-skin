@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 namespace DarkSkin {
     public class UnitySkin {
 
-        public static readonly string[] WHITE_HEX = new [] {
+        public static readonly string[] WHITE_HEX = new[] {
             "84 C0 75 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2
             "84 C0 75 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 74 04 33 C0 EB 02 8B 07", // >= 2019.1
             // "74 56 48 8B 7C 24 30 48 83 7C 24 38 00 77 2F 48 85 FF 74 2A 48 8B 74 24 48 48 8B 0B 48 85 C9 74 10 48 83 7B 08 00 76 09 48 8D 53"
         };
-        public static readonly string[] DARK_HEX = new [] {
+        public static readonly string[] DARK_HEX = new[] {
             "84 C0 74 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2 
             "84 C0 74 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 75 04 33 C0 EB 02 8B 07", // >= 2019.1
@@ -33,11 +33,11 @@ namespace DarkSkin {
         public bool IsWhiteSkin { get; private set; }
 
         public UnitySkin(string unityExe, bool checkMatches) {
-            var exeBytes = File.ReadAllBytes(unityExe);
 
             UnityExe = unityExe;
 
             if (checkMatches) {
+                var exeBytes = File.ReadAllBytes(unityExe);
                 BestMatches(exeBytes);
                 return;
             }
@@ -45,18 +45,22 @@ namespace DarkSkin {
             if (whiteBytes.Length != darkBytes.Length)
                 throw new Exception("Non matching number of skins hexes");
 
-            for (var i = 0; i < darkBytes.Length; i++) {
-                OffsetOfSkinFlags = GetOffsetOfSkinFlag(exeBytes, whiteBytes[i], darkBytes[i]);
+            var skinSequence = new byte[0];
 
-                if (OffsetOfSkinFlags != -1) {
-                    SkinIndex = i;
-                    break;
-                }
-            }
+            using (var stream = File.OpenRead(unityExe))
+                OffsetOfSkinFlags = GetOffsetOfSkinFlag(stream, darkBytes.Concat(whiteBytes).ToArray(), out skinSequence);
 
             if (OffsetOfSkinFlags != -1) {
-                IsDarkSkin = ArrayMatch(exeBytes, OffsetOfSkinFlags, darkBytes[SkinIndex]);
-                IsWhiteSkin = ArrayMatch(exeBytes, OffsetOfSkinFlags, whiteBytes[SkinIndex]);
+                IsDarkSkin = darkBytes.Contains(skinSequence);
+                IsWhiteSkin = whiteBytes.Contains(skinSequence);
+
+                if (IsDarkSkin)
+                    SkinIndex = Array.IndexOf(darkBytes, skinSequence);
+                else if (IsWhiteSkin)
+                    SkinIndex = Array.IndexOf(whiteBytes, skinSequence);
+                else
+                    Log("WUT");
+
                 //Log("Current skin {0} (index {1}, offset 0x{2:X8})", IsDarkSkin ? "dark" : IsWhiteSkin ? "white" : "none", SkinIndex, OffsetOfSkinFlags);
             } else
                 Log("Invalid executable, skin bytes not found");
@@ -92,14 +96,6 @@ namespace DarkSkin {
             return hex.Split(' ').Select(b => byte.Parse(b, NumberStyles.HexNumber)).ToArray();
         }
 
-        private static bool ArrayMatch(byte[] array, int offset, byte[] check) {
-            for (int i = 0, j = offset; i < check.Length; i++, j++)
-                if (j >= array.Length || j < 0 || array[j] != check[i])
-                    return false;
-
-            return true;
-        }
-
         private static void BestMatches(byte[] exeBytes) {
             for (var i = 0; i < whiteBytes.Length; i++) {
                 Console.WriteLine("\nTesting white skin sequence {0}", i);
@@ -120,7 +116,7 @@ namespace DarkSkin {
             Console.WriteLine("0x{0:X8} ({1:00.0%}):\t{2} - {3:0.00%}", c, (float)c / exeBytes.Length, FormatBytes(exeBytes, c, 1000), cs);
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Black;
-            Parallel.For(c, c + 5000 /*exeBytes.Length*/, (i) => {
+            Parallel.For(c, c + 5000 /*exeBytes.Length*/ , (i) => {
                 var match = MatchPercent(exeBytes, i, skinBytes);
                 if (match > 0.4)
                     Console.WriteLine("0x{0:X8} ({1:00.0%}):\t{2} - {3:0.00%}", i, (float)i / exeBytes.Length, FormatBytes(exeBytes, i, skinBytes.Length), match);
@@ -137,22 +133,41 @@ namespace DarkSkin {
             return (float)matches / skinBytes.Length;
         }
 
-        private static int GetOffsetOfSkinFlag(byte[] exeBytes, byte[] expectedWhiteSequence, byte[] expectedDarkSequence) {
-            if (expectedWhiteSequence.Length != expectedDarkSequence.Length)
-                throw new InvalidOperationException("Dark and white skin hex lengh don't match");
+        private static int GetOffsetOfSkinFlag(Stream fileStream, byte[][] sequences, out byte[] matchedSequence) {
 
-            var result = -1;
+            var buffer = new byte[fileStream.Length];
 
-            Parallel.For(0, exeBytes.Length - expectedDarkSequence.Length, (addr, state) => {
-                for (var j = 0; j < expectedWhiteSequence.Length; j++)
-                    if (exeBytes[addr + j] != expectedWhiteSequence[j] && exeBytes[addr + j] != expectedDarkSequence[j])
-                        return; // Our byte is different, continue to next sequence.
+            void ensureFileAddrIsAvailable(int index) {
+                const int READ_BYTES = 8 * 1024; // 1KB
 
-                result = addr; // We matched all the bytes, return the address. 
-                state.Stop();
-            });
+                if (index >= fileStream.Position)
+                    fileStream.Read(buffer, (int)fileStream.Position, Math.Min(READ_BYTES, buffer.Length - (int)fileStream.Position));
+            }
 
-            return result;
+            for (var addr = 0; addr < buffer.Length; addr++) {
+                ensureFileAddrIsAvailable(addr + 1000);
+                for (var i = 0; i < sequences.Length; i++) {
+                    matchedSequence = sequences[i];
+
+                    if (SequenceEquals(buffer, addr, matchedSequence, 0, matchedSequence.Length))
+                        return addr;
+                }
+            }
+
+            matchedSequence = null;
+            return -1;
+        }
+
+        private static bool SequenceEquals(byte[] a, int offsetA, byte[] b, int offsetB, int count) {
+
+            if (offsetA + count > a.Length || offsetB + count > b.Length)
+                return false;
+
+            for (var i = 0; i < count; i++)
+                if (a[i + offsetA] != b[i + offsetB])
+                    return false;
+
+            return true;
         }
 
         private void EnsureBackup() {
