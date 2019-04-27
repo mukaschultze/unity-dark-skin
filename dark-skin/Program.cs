@@ -48,16 +48,23 @@ namespace DarkSkin {
 
             try {
 
-                //var n = new UnitySkin(@"D:\Unity\2019.1.0a7-ImprovedUI\Editor\Unity.exe", true);
-                //n.SetDarkSkinEnable(true);
-                //return;
+                // try {
+                //     var exeBytes = File.ReadAllBytes(@"C:\Unity\2019.2.0a11\Editor\Unity.exe");
+                //     var functionOffset = 0x00AB6CF0;
+                //     var baseAddr = 0x400;
+                //     Console.WriteLine(UnitySkin.FormatBytes(exeBytes, functionOffset + baseAddr, 1000));
+                // } catch (Exception e) {
+                //     Console.WriteLine(e);
+                // } finally {
+                //     Console.ReadLine();
+                // }
 
                 Console.WriteLine("Fetching unity installations...");
 
                 GetUnityInstallations(Environment.CurrentDirectory)
                     .AsParallel()
                     .Where(exe => File.Exists(exe))
-                    .Select(exe => new UnitySkin(exe, false))
+                    .Select(exe => new UnitySkin(exe))
                     .Where(unity => unity.OffsetOfSkinFlags != -1 && unity.SkinIndex != -1)
                     .Where(unity => {
                         var shouldChange = (toEnable && unity.IsWhiteSkin) || (!toEnable && unity.IsDarkSkin);
