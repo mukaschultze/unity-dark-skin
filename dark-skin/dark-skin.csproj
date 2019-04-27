@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="FastDirectoryEnumerator.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="TempConsoleColor.cs" />
     <Compile Include="UnitySkin.cs" />
   </ItemGroup>
   <ItemGroup>
