@@ -11,13 +11,13 @@ namespace DarkSkin {
             "84 C0 75 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2
             "84 C0 75 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 74 04 33 C0 EB 02 8B 07", // == 2019.1
-            "80 3D BF D3 8C 06 00 75 15 33 C0 EB 13 90" // >= 2019.2
+            "06 00 75 15 33 C0 EB 13 90" // >= 2019.2
         };
         public static readonly string[] DARK_HEX = new [] {
             "84 C0 74 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2 
             "84 C0 74 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 75 04 33 C0 EB 02 8B 07", // == 2019.1
-            "80 3D BF D3 8C 06 00 74 15 33 C0 EB 13 90" // >= 2019.2
+            "06 00 74 15 33 C0 EB 13 90", // >= 2019.2
         };
 
         public static readonly byte[][] whiteBytes = GetBytesFromHex(WHITE_HEX);
