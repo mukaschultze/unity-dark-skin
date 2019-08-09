@@ -51,7 +51,7 @@ namespace DarkSkin {
 
                             try {
                                 using(var file = File.OpenRead(unity)) {
-                                    var buffer = new byte[0x80]; // 45 is a random number that might be enought
+                                    var buffer = new byte[0x80]; // This size may not be enough in future versions
 
                                     file.Seek(addr, SeekOrigin.Begin);
                                     file.Read(buffer, 0, buffer.Length);
