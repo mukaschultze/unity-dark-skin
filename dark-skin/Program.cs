@@ -28,59 +28,48 @@ namespace DarkSkin {
 
         private static void FindHex(string unity) {
 
-            var startOptions = new ProcessStartInfo() {
-                FileName = "cvdump.exe",
-                Arguments = "-headers -p " + unity,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+            using(var cvDump = new CVDump()) {
+                var regex = new Regex(@"^.+:\s*\[(?<section>[0-9a-fA-F]{4}):(?<addr>[0-9a-fA-F]{8})\].*GetSkinIdx.*$");
 
-            var process = Process.Start(startOptions);
-            var regex = new Regex(@"^.+:\s*\[(?<section>[0-9a-fA-F]{4}):(?<addr>[0-9a-fA-F]{8})\].*GetSkinIdx.*$");
+                cvDump.Execute(unity,
+                    (args, e) => { // Stdout
+                        if (string.IsNullOrWhiteSpace(e.Data))
+                            return;
 
-            process.BeginErrorReadLine();
-            process.BeginOutputReadLine();
+                        var match = regex.Match(e.Data);
 
-            process.OutputDataReceived += (args, e) => {
-                if (string.IsNullOrWhiteSpace(e.Data))
-                    return;
+                        if (match.Success) {
+                            var section = match.Groups["section"];
+                            var addr = long.Parse(match.Groups["addr"].ToString(), System.Globalization.NumberStyles.HexNumber);
 
-                var match = regex.Match(e.Data);
+                            addr += 0x400; // Section offset
 
-                if (match.Success) {
-                    var section = match.Groups["section"];
-                    var addr = long.Parse(match.Groups["addr"].ToString(), System.Globalization.NumberStyles.HexNumber);
+                            Console.WriteLine(e.Data);
 
-                    addr += 0x400; // Section offset
+                            using(new TempConsoleColor(ConsoleColor.DarkGreen))
+                            Console.WriteLine("Found GetSkinIdx at section {0} and address {1:X8}", section, addr);
 
-                    Console.WriteLine(e.Data);
-                    Console.WriteLine("Found GetSkinIdx at section {0} and address {1:X8}", section, addr);
+                            try {
+                                using(var file = File.OpenRead(unity)) {
+                                    var buffer = new byte[0x80]; // 45 is a random number that might be enought
 
-                    try {
-                        using(var file = File.OpenRead(unity)) {
-                            var buffer = new byte[0x80]; // 45 is a random number that might be enought
+                                    file.Seek(addr, SeekOrigin.Begin);
+                                    file.Read(buffer, 0, buffer.Length);
 
-                            file.Seek(addr, SeekOrigin.Begin);
-                            file.Read(buffer, 0, buffer.Length);
-
-                            var formattedBytes = UnitySkin.FormatBytes(buffer);
-                            Console.WriteLine(formattedBytes);
+                                    var formattedBytes = UnitySkin.FormatBytes(buffer);
+                                    Console.WriteLine("x64 Routine:");
+                                    Console.WriteLine(formattedBytes);
+                                }
+                            } catch (Exception ex) {
+                                Console.Error.WriteLine("Failed to open Unity executable");
+                                Console.Error.WriteLine(ex);
+                            }
                         }
-                    } catch (Exception ex) {
-                        Console.Error.WriteLine("Failed to open Unity executable");
-                        Console.Error.WriteLine(ex);
-                    }
-                }
-            };
+                    }, (args, e) => { // Stderr
+                        Console.Error.WriteLine(e.Data);
+                    });
 
-            process.ErrorDataReceived += (args, e) => {
-                Console.Error.WriteLine(e.Data);
-            };
-
-            process.WaitForExit();
-
+            }
         }
 
         private static void Main(params string[] args) {
