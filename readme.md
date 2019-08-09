@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.com/mukaschultze/unity-dark-skin.svg?token=sVCq9xxrRGD5JaaAq2cW&branch=master)](https://travis-ci.com/mukaschultze/unity-dark-skin)
 
+**[Download latest release](https://github.com/mukaschultze/unity-dark-skin/releases/latest)**
+
 ## How to use
 
 Just place the executable on the same folder where your unity installations are and run `dark-skin enable` from the command line, the tool will search for executables and patch them. **Close all the editor instances before running this tool.**
@@ -15,6 +17,13 @@ The tool will automatically backup and restore the .exe if any errors occur duri
 - `S_PUB32: [0001:00ABD9C0], Flags: 00000002, ?GetSkinIdx@EditorResources@@QEBAHXZ`
 - Function address is virtual addr + section raw pointer
 - Ex: 0x00ABD9C0 + 0x400
+
+OR
+
+- `dark-skin findHex UNITY_FOLDER\Editor\Unity.exe`
+
+Then
+
 - https://defuse.ca/online-x86-assembler.htm#disassembly2
 
 ### Assembly - Unity 2019.2.0a9
@@ -56,5 +65,3 @@ d3: c3                      ret
 76: 5f                      pop    rdi
 77: c3                      ret
 ```
-
-## [Download latest release](https://github.com/mukaschultze/unity-dark-skin/releases/latest)

@@ -2,7 +2,6 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace DarkSkin {
     public class UnitySkin {
@@ -11,13 +10,13 @@ namespace DarkSkin {
             "84 C0 75 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2
             "84 C0 75 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 74 04 33 C0 EB 02 8B 07", // == 2019.1
-            "06 00 75 15 33 C0 EB 13 90" // >= 2019.2
+            "75 15 33 C0 EB 13 90 49 FF C0 42 80 3C 03 00" // >= 2019.2
         };
         public static readonly string[] DARK_HEX = new [] {
             "84 C0 74 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2 
             "84 C0 74 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
             "84 DB 75 04 33 C0 EB 02 8B 07", // == 2019.1
-            "06 00 74 15 33 C0 EB 13 90", // >= 2019.2
+            "74 15 33 C0 EB 13 90 49 FF C0 42 80 3C 03 00", // >= 2019.2
         };
 
         public static readonly byte[][] whiteBytes = GetBytesFromHex(WHITE_HEX);

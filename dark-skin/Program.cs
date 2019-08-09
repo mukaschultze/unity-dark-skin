@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using CodeProject;
 
 namespace DarkSkin {
@@ -24,7 +26,72 @@ namespace DarkSkin {
             });
         }
 
+        private static void FindHex(string unity) {
+
+            var startOptions = new ProcessStartInfo() {
+                FileName = "cvdump.exe",
+                Arguments = "-headers -p " + unity,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            var process = Process.Start(startOptions);
+            var regex = new Regex(@"^.+:\s*\[(?<section>[0-9a-fA-F]{4}):(?<addr>[0-9a-fA-F]{8})\].*GetSkinIdx.*$");
+
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+
+            process.OutputDataReceived += (args, e) => {
+                if (string.IsNullOrWhiteSpace(e.Data))
+                    return;
+
+                var match = regex.Match(e.Data);
+
+                if (match.Success) {
+                    var section = match.Groups["section"];
+                    var addr = long.Parse(match.Groups["addr"].ToString(), System.Globalization.NumberStyles.HexNumber);
+
+                    addr += 0x400; // Section offset
+
+                    Console.WriteLine(e.Data);
+                    Console.WriteLine("Found GetSkinIdx at section {0} and address {1:X8}", section, addr);
+
+                    try {
+                        using(var file = File.OpenRead(unity)) {
+                            var buffer = new byte[0x80]; // 45 is a random number that might be enought
+
+                            file.Seek(addr, SeekOrigin.Begin);
+                            file.Read(buffer, 0, buffer.Length);
+
+                            var formattedBytes = UnitySkin.FormatBytes(buffer);
+                            Console.WriteLine(formattedBytes);
+                        }
+                    } catch (Exception ex) {
+                        Console.Error.WriteLine("Failed to open Unity executable");
+                        Console.Error.WriteLine(ex);
+                    }
+                }
+            };
+
+            process.ErrorDataReceived += (args, e) => {
+                Console.Error.WriteLine(e.Data);
+            };
+
+            process.WaitForExit();
+
+        }
+
         private static void Main(params string[] args) {
+
+            var findHex = args.Contains("findHex");
+            var unityArg = findHex ? args[Array.IndexOf(args, "findHex") + 1] : "";
+
+            if (findHex) {
+                FindHex(unityArg);
+                return;
+            }
 
             var toEnable = args.Contains("enable");
             var toDisable = args.Contains("disable");
@@ -36,6 +103,7 @@ namespace DarkSkin {
                 Console.WriteLine("Usage:");
                 Console.WriteLine("  dark-skin.exe enable | disable [options]");
                 Console.WriteLine("");
+                Console.WriteLine("    findHex unityExe   Find the address of the GetSkinIdx method for a particular Unity version");
                 Console.WriteLine("-h, --help             Show this screen");
                 Console.WriteLine("-f, --fast-enumerator  Use fast file enumeration, otherwise use recursive enumeration");
                 return;
