@@ -8,15 +8,15 @@ namespace DarkSkin {
     [Verb("disable", HelpText = "Revert the skin to the original.")]
     class DisableOptions : BaseOption { }
 
-    [Verb("findhex", HelpText = "Find the address of the GetSkinIdx method for a particular Unity version")]
+    [Verb("findhex", HelpText = "Find and list the addresses and hexes of the GetSkinIdx methods")]
     class FindHexOptions : BaseOption { }
 
     class BaseOption {
-        [Option('i', "input", Default = "**/Unity.exe", HelpText = "Unity executable path.")]
+        [Value(0, MetaName = "unityExe", Default = ".")]
         public string InputFile { get; set; }
 
-        [Option('f', "fast-enumerator", HelpText = "Use fast file enumeration to search for executables, otherwise use recursive enumeration.")]
-        public string FastEnumerator { get; set; }
+        [Option('f', "fast-enumerator", Default = false, HelpText = "Use fast file enumeration to search for executables, otherwise use recursive enumeration.")]
+        public bool FastEnumerator { get; set; }
     }
 
 }
