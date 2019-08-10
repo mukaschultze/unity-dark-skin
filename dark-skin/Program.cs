@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CodeProject;
+using CommandLine;
 
 namespace DarkSkin {
     public static class Program {
@@ -51,7 +51,7 @@ namespace DarkSkin {
 
                             try {
                                 using(var file = File.OpenRead(unity)) {
-                                    var buffer = new byte[0x80]; // This size may not be enough in future versions
+                                    var buffer = new byte[0x80]; // 45 is a random number that might be enought
 
                                     file.Seek(addr, SeekOrigin.Begin);
                                     file.Read(buffer, 0, buffer.Length);
@@ -72,14 +72,21 @@ namespace DarkSkin {
             }
         }
 
-        private static void Main(params string[] args) {
+        private static int Main(params string[] args) {
+
+            return Parser.Default.ParseArguments<EnableOptions, DisableOptions, FindHexOptions>(args)
+                .MapResult(
+                    (EnableOptions opts) => { return 0; },
+                    (DisableOptions opts) => { return 0; },
+                    (FindHexOptions opts) => { return 0; },
+                    errs => 1);
 
             var findHex = args.Contains("findHex");
             var unityArg = findHex ? args[Array.IndexOf(args, "findHex") + 1] : "";
 
             if (findHex) {
                 FindHex(unityArg);
-                return;
+                return 0;
             }
 
             var toEnable = args.Contains("enable");
@@ -95,7 +102,7 @@ namespace DarkSkin {
                 Console.WriteLine("    findHex unityExe   Find the address of the GetSkinIdx method for a particular Unity version");
                 Console.WriteLine("-h, --help             Show this screen");
                 Console.WriteLine("-f, --fast-enumerator  Use fast file enumeration, otherwise use recursive enumeration");
-                return;
+                return 1;
             }
 
             m_toEnable = toEnable;
@@ -135,6 +142,8 @@ namespace DarkSkin {
                 Console.Error.WriteLine("\nError");
                 Console.Error.WriteLine(e);
             }
+
+            return 0;
         }
 
         private static List<string> GetUnityInstallations(string root) {

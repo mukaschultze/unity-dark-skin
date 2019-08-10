@@ -16,12 +16,12 @@ namespace DarkSkin {
         public void Execute(string exePath, DataReceivedEventHandler outputCallback, DataReceivedEventHandler errorCallback, string arguments = "-headers -p") {
 
             var startOptions = new ProcessStartInfo {
-                FileName = cvDumpExe,
-                Arguments = string.Format("{0} {1}", arguments, exePath),
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
+            FileName = cvDumpExe,
+            Arguments = string.Format("{0} {1}", arguments, exePath),
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
             };
 
             var process = Process.Start(startOptions);
