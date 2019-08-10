@@ -6,6 +6,8 @@ using System.Linq;
 namespace DarkSkin {
     public class UnitySkin {
 
+        private static readonly object obj = new object();
+
         public static readonly string[] WHITE_HEX = new [] {
             "84 C0 75 08 33 C0 48 83 C4 20 5B C3 8B 03 48 83 C4 20 5B C3", // <= 2018.2
             "84 C0 75 08 33 C0 48 83 C4 30 5B C3 8B 03 48 83 C4 30 5B C3", // == 2018.3 
@@ -63,7 +65,10 @@ namespace DarkSkin {
             EnsureBackup();
 
             try {
+                lock(obj)
+                using(new TempConsoleColor(ConsoleColor.DarkGreen))
                 Log("Applying {0} skin...", enable ? "dark" : "white");
+
                 using(var stream = File.Open(UnityExe, FileMode.Open)) {
                     stream.Position = OffsetOfSkinFlags;
                     stream.Write(enable ? darkBytes[SkinIndex] : whiteBytes[SkinIndex], 0, (enable ? darkBytes[SkinIndex] : whiteBytes[SkinIndex]).Length);
