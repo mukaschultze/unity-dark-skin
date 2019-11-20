@@ -1,6 +1,8 @@
 # Dark Skin for Unity
 
-[![Build Status](https://travis-ci.com/mukaschultze/unity-dark-skin.svg?token=sVCq9xxrRGD5JaaAq2cW&branch=master)](https://travis-ci.com/mukaschultze/unity-dark-skin)
+[![Build Status](https://travis-ci.com/mukaschultze/unity-dark-skin.svg)](https://travis-ci.com/mukaschultze/unity-dark-skin)
+[![Latest release](https://img.shields.io/github/v/release/mukaschultze/unity-dark-skin)](https://github.com/mukaschultze/unity-dark-skin/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/mukaschultze/unity-dark-skin/total)](https://github.com/mukaschultze/unity-dark-skin/releases/latest)
 
 **[Download latest release](https://github.com/mukaschultze/unity-dark-skin/releases/latest)**
 
